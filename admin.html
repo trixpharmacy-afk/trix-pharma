@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>TRIX developer console</title>
+<style>
+:root{--bg:#121414;--sur:#171a1a;--ink:#eef4f2;--mute:#8fa3a0;--line:#2b3232;--brand:#12968c;--bad:#ff7b72;--ok:#4ed1a1;--warn:#f0b24a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;line-height:1.5}
+main{max-width:980px;margin:0 auto;padding:22px 16px 60px}
+h1{font-size:22px;margin:0}h2{font-size:17px;margin:0 0 10px}
+.top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px}
+.mute{color:var(--mute);font-size:13px}
+input,textarea{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:var(--sur);color:var(--ink);font:inherit}
+textarea{min-height:320px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+button{padding:9px 14px;border:1.5px solid var(--line);border-radius:11px;background:transparent;color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+button.p{background:var(--brand);border-color:var(--brand)}button.d{color:var(--bad);border-color:#5a2c2c}button.o{color:var(--ok)}
+button:disabled{opacity:.5}
+.tabs{display:flex;gap:6px;margin:14px 0}
+.tabs button.on{background:#1f4d58;border-color:#1f4d58}
+.card{background:var(--sur);border:1.5px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sp{flex:1}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px}
+.pill.ok{background:#143328;color:var(--ok)}.pill.bad{background:#3b1f1f;color:var(--bad)}.pill.warn{background:#3a2c10;color:var(--warn)}
+.msg{padding:10px 13px;border-radius:12px;margin:12px 0;font-size:14px}
+.msg.ok{background:#143328;color:var(--ok)}.msg.err{background:#3b1f1f;color:var(--bad)}.msg.info{background:#1b2424;color:var(--mute)}
+a{color:#2bc2b3}
+.staff{margin:10px 0 0 10px;padding-left:12px;border-left:2px solid var(--line)}
+code{background:#0d0f0f;padding:2px 7px;border-radius:7px;font-size:14px}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><h1>TRIX developer console</h1><span class="mute">Private. Only you should have this page and the admin key.</span></div>
+  <div class="card" id="lock">
+    <div class="row"><input id="k" type="password" placeholder="Admin key" autocomplete="off" style="max-width:340px"><button class="p" id="unlock">Unlock</button></div>
+  </div>
+  <div id="msg"></div>
+  <div id="app" hidden>
+    <div class="tabs"><button id="t-pay" class="on">Payments</button><button id="t-org">Pharmacies</button><button id="t-log">Activity</button></div>
+    <section id="s-pay"></section>
+    <section id="s-org" hidden></section>
+    <section id="s-log" hidden></section>
+    <section id="s-edit" hidden></section>
+  </div>
+</main>
+<script>
+var KEY=sessionStorage.getItem('trixk')||'',DATA=null,TAB='pay',Q='';
+function $(id){return document.getElementById(id)}
+function el(t,a){var e=document.createElement(t);a=a||{};for(var k in a){if(k==='class')e.className=a[k];else if(k.slice(0,2)==='on')e[k]=a[k];else e.setAttribute(k,a[k])}
+ for(var i=2;i<arguments.length;i++){var c=arguments[i];if(c==null)continue;if(Array.isArray(c))c.forEach(function(x){e.append(x&&x.nodeType?x:document.createTextNode(x))});else e.append(c&&c.nodeType?c:document.createTextNode(c))}return e}
+function say(t,kind){var m=$('msg');m.textContent='';if(t){var d=el('div',{class:'msg '+(kind||'info')},t);m.append(d)}}
+async function api(p,body){var r=await fetch(p,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','x-admin-key':KEY},body:body?JSON.stringify(body):undefined});var j=await r.json().catch(function(){return{}});if(!r.ok)throw new Error(j.error||'Something went wrong');return j}
+function when(n){return n?new Date(n).toLocaleString():'-'}
+function act(btn,fn){btn.onclick=async function(){btn.disabled=true;try{await fn()}catch(e){say(e.message,'err')}btn.disabled=false}}
+function button(label,cls,fn){var b=el('button',{class:cls||''},label);act(b,fn);return b}
+
+async function load(){DATA=await api('/api/admin/overview');$('lock').hidden=true;$('app').hidden=false;render()}
+function show(t){TAB=t;['pay','org','log'].forEach(function(x){$('s-'+x).hidden=x!==t;$('t-'+x).className=x===t?'on':''});$('s-edit').hidden=true;if(t!=='x')render()}
+$('t-pay').onclick=function(){show('pay')};$('t-org').onclick=function(){show('org')};$('t-log').onclick=function(){show('log')};
+$('unlock').onclick=async function(){KEY=$('k').value;sessionStorage.setItem('trixk',KEY);try{say('');await load()}catch(e){say(e.message,'err')}};
+$('k').onkeydown=function(e){if(e.key==='Enter')$('unlock').click()};
+
+function render(){renderPay();renderOrg();renderLog()}
+
+function renderPay(){
+ var s=$('s-pay');s.textContent='';
+ s.append(el('h2',{},'Payment references waiting for you ('+DATA.pays.length+')'),el('p',{class:'mute'},'Each reference was also emailed to you. Match it with your Equity Bank or MoMo statement first. Only then press Confirm: that creates a one-time activation code and emails it to the customer.'));
+ if(!DATA.pays.length)s.append(el('div',{class:'card mute'},'Nothing waiting.'));
+ DATA.pays.forEach(function(p){
+  var c=el('div',{class:'card'});
+  c.append(el('div',{class:'row'},el('strong',{},p.name),el('span',{class:'mute'},p.email),el('span',{class:'sp'}),el('span',{class:'pill warn'},p.m)));
+  c.append(el('p',{},'Reference: ',el('code',{},p.ref),'   Expected: 500,000 FRW   ',el('span',{class:'mute'},when(p.at))));
+  if(p.dup.length)c.append(el('div',{class:'msg err'},'Warning: the same reference was also sent by '+p.dup.map(function(d){return d.email+' ('+d.status+')'}).join(', ')+'. Check carefully.'));
+  var r=el('div',{class:'row'});
+  r.append(button('Confirm and email code','p',async function(){
+   var force=false;
+   try{var j=await api('/api/admin/payment/confirm',{email:p.email})}catch(e){if(/already confirmed/.test(e.message)&&confirm(e.message+'\n\nConfirm anyway?')){j=await api('/api/admin/payment/confirm',{email:p.email,force:true})}else throw e}
+   say(j.emailed?'Activation code emailed to '+p.email+'.':'Confirmed, but the email could not be sent.',j.emailed?'ok':'err');await load()}));
+  r.append(button('Reject','d',async function(){var why=prompt('Optional note for the customer (they will get an email):','');if(why===null)return;await api('/api/admin/payment/reject',{email:p.email,reason:why});say('Rejected. The customer was told to check the reference.','ok');await load()}));
+  c.append(r);s.append(c);
+ });
+}
+
+function renderOrg(){
+ var s=$('s-org');s.textContent='';
+ var box=el('input',{placeholder:'Search by name or email',value:Q});box.oninput=function(){Q=box.value;renderOrgList(list)};
+ var list=el('div');
+ s.append(el('h2',{},'All pharmacies ('+DATA.orgs.length+')'),box,el('div',{style:'height:12px'}),list);renderOrgList(list);
+}
+function renderOrgList(list){
+ list.textContent='';var q=Q.toLowerCase();
+ DATA.orgs.filter(function(o){var t=((o.owner&&o.owner.email)||'')+' '+((o.owner&&o.owner.name)||'')+' '+o.name+' '+o.staff.map(function(x){return x.email+' '+x.name}).join(' ');return t.toLowerCase().indexOf(q)>-1}).forEach(function(o){
+  var on=o.paidUntil>Date.now(),c=el('div',{class:'card'});
+  c.append(el('div',{class:'row'},el('strong',{},o.owner?o.owner.name:'(no owner)'),el('span',{class:'mute'},o.owner?o.owner.email:''),el('span',{class:'sp'}),o.codeOut?el('span',{class:'pill warn'},'code sent'):null,el('span',{class:'pill '+(on?'ok':'bad')},on?'Active until '+new Date(o.paidUntil).toLocaleDateString():'Locked')));
+  c.append(el('p',{class:'mute'},'Pharmacy: '+(o.name||'-')+'  |  Created '+when(o.createdAt)+'  |  '+o.stats.meds+' stock batches, '+o.stats.sales+' sales, '+o.stats.patients+' patients'));
+  var r=el('div',{class:'row'});
+  r.append(button('View / edit data','',function(){return openEditor(o)}));
+  if(o.owner){
+   r.append(button('Open account','',function(){return openAccount(o.owner.id)}));
+   r.append(button('Extend 30 days','o',async function(){await api('/api/admin/org/access',{id:o.id,days:30});say('Extended 30 days.','ok');await load()}));
+   r.append(button('Suspend','d',async function(){if(!confirm('Suspend this pharmacy? They will be locked until you extend or they pay.'))return;await api('/api/admin/org/access',{id:o.id,days:0});say('Suspended.','ok');await load()}));
+   r.append(button('Edit name/email','',function(){return editUser(o.owner)}));
+   r.append(button('Send reset link','',async function(){var j=await api('/api/admin/user/reset',{id:o.owner.id});say(j.emailed?'Reset link emailed.':'Could not email the link.',j.emailed?'ok':'err')}));
+   r.append(button('Delete pharmacy','d',function(){return delUser(o.owner,true,o)}));
+  }
+  c.append(r);
+  if(o.staff.length){var st=el('div',{class:'staff'});o.staff.forEach(function(u){
+   var rr=el('div',{class:'row'},el('span',{},u.name),el('span',{class:'mute'},u.email),el('span',{class:'sp'}));
+   rr.append(button('Open account','',function(){return openAccount(u.id)}));
+   rr.append(button('Send reset link','',async function(){var j=await api('/api/admin/user/reset',{id:u.id});say(j.emailed?'Reset link emailed.':'Could not email the link.',j.emailed?'ok':'err')}));
+   rr.append(button('Edit','',function(){return editUser(u)}));
+   rr.append(button('Delete','d',function(){return delUser(u,false,o)}));
+   st.append(rr)});c.append(st)}
+  list.append(c);
+ });
+ if(!list.children.length)list.append(el('div',{class:'card mute'},'No pharmacies match.'));
+}
+
+async function openAccount(id){
+ var j=await api('/api/admin/user/impersonate',{id:id}),url='/?as='+j.token;
+ var m=$('msg');m.textContent='';
+ m.append(el('div',{class:'msg ok'},'Account access is ready (valid for 1 hour, and recorded in Activity). ',el('a',{href:url,target:'_blank',rel:'noopener'},'Open the account now')));
+}
+async function editUser(u){
+ var name=prompt('Name:',u.name);if(name===null)return;var email=prompt('Email:',u.email);if(email===null)return;
+ await api('/api/admin/user/edit',{id:u.id,name:name,email:email});say('Saved.','ok');await load();
+}
+async function delUser(u,isOwner,o){
+ var warn=isOwner?'This permanently deletes the pharmacy '+(o.name||u.name)+', ALL its data, and ALL its staff accounts.':'This permanently deletes the staff account '+u.email+'.';
+ if(prompt(warn+'\n\nType DELETE to confirm:')!=='DELETE')return;
+ var j=await api('/api/admin/user/delete',{id:u.id,confirm:'DELETE'});say('Deleted ('+j.removed+' account'+(j.removed===1?'':'s')+').','ok');await load();
+}
+async function openEditor(o){
+ var r=await api('/api/admin/org/get',{id:o.id});
+ var s=$('s-edit');s.textContent='';s.hidden=false;$('s-pay').hidden=true;$('s-org').hidden=true;$('s-log').hidden=true;
+ var ta=el('textarea',{spellcheck:'false'});ta.value=JSON.stringify(r.db||{},null,2);
+ s.append(el('h2',{},'Data of '+(o.owner?o.owner.name:o.id)+' ('+(o.name||'pharmacy')+')'),
+  el('p',{class:'mute'},'This is everything the pharmacy stored: stock (meds), sales, purchases (buys), patients (pats), claims (clm), suppliers, branches. Edit carefully. Invalid JSON will not be saved.'),ta,
+  el('div',{class:'row',style:'margin-top:12px'},
+   button('Save changes','p',async function(){var v;try{v=JSON.parse(ta.value)}catch(e){throw new Error('That is not valid JSON: '+e.message)}await api('/api/admin/org/save',{id:o.id,db:v});say('Saved. The pharmacy sees the change next time it loads.','ok');await load();show('org')}),
+   button('Close','',async function(){show('org')})));
+}
+function renderLog(){
+ var s=$('s-log');s.textContent='';s.append(el('h2',{},'Recent activity (your actions)'));
+ if(!DATA.audit.length)s.append(el('div',{class:'card mute'},'Nothing yet.'));
+ DATA.audit.forEach(function(a){s.append(el('div',{class:'card row'},el('span',{class:'mute'},when(a.at)),el('span',{},a.action),el('span',{class:'mute'},a.target||'')))});
+}
+if(KEY){$('k').value=KEY;load().catch(function(e){say(e.message,'err')})}
+</script>
+</body>
+</html>
