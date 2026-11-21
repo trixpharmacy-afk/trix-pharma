@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TRIX Pharmacy</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="auth">
+  <div class="logo"><i>T</i>TRIX <span>Pharmacy</span></div>
+  <p class="tag">Stock, sales and expiry control for your pharmacy.</p>
+  <div class="tabs">
+    <button class="btn on" data-t="in">Sign in</button>
+    <button class="btn" data-t="up">Create account</button>
+    <button class="btn" data-t="rs">Forgot?</button>
+  </div>
+  <div class="card">
+    <h2 class="ct" id="ct">Welcome back</h2>
+    <p class="mute cs" id="cs">Sign in to manage your pharmacy.</p>
+    <div id="f-in">
+      <label for="inE">Email address</label><input id="inE" type="email" autocomplete="email" placeholder="name@yourpharmacy.com">
+      <label for="inP">Password</label><input id="inP" type="password" autocomplete="current-password" placeholder="Your password">
+      <button class="btn p" id="doIn" style="width:100%">Sign in</button>
+    </div>
+    <div id="f-up" style="display:none">
+      <label for="upN">Pharmacy name</label><input id="upN" autocomplete="organization" placeholder="e.g. Green Cross Pharmacy">
+      <label for="upE">Email address</label><input id="upE" type="email" autocomplete="email" placeholder="name@yourpharmacy.com">
+      <label for="upP">Password</label><input id="upP" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+      <button class="btn p" id="doUp" style="width:100%">Create account</button>
+      <p class="mute" style="margin-top:12px">We will email you a link to confirm that this address is really yours.</p>
+    </div>
+    <div id="f-rs" style="display:none">
+      <label for="rsE">Email address</label><input id="rsE" type="email" autocomplete="email" placeholder="name@yourpharmacy.com">
+      <button class="btn p" id="doRs" style="width:100%">Email me a reset link</button>
+    </div>
+    <div id="f-rn" style="display:none">
+      <label for="rnP">New password</label><input id="rnP" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+      <button class="btn p" id="doRn" style="width:100%">Save new password</button>
+    </div>
+    <p class="msg" id="msg" role="status"></p>
+  </div>
+  <p class="foot">Secure sign-in. Each pharmacy’s data is kept separate from every other account.</p>
+</div>
+<div id="app">
+  <div id="shade"></div>
+  <nav id="side">
+    <div class="logo"><i>T</i>TRIX <span>Pharmacy</span></div>
+    <h6>PHARMACY OPERATIONS</h6>
+    <a data-v="dash" class="on" tabindex="0"><b>▦</b>Dashboard</a>
+    <a data-v="stock" tabindex="0"><b>▤</b>Stock &amp; batches</a>
+    <a data-v="scan" tabindex="0"><b>▮</b>Barcode scanner</a>
+    <a data-v="br" tabindex="0"><b>⌂</b>Branches &amp; transfers</a>
+    <a data-v="sale" tabindex="0"><b>↗</b>Record a sale</a>
+    <a data-v="buy" tabindex="0"><b>↙</b>Purchases &amp; suppliers</a>
+    <a data-v="exp" tabindex="0"><b>◔</b>Expiry control</a>
+    <a data-v="cat" tabindex="0"><b>✚</b>Medicine catalogue</a>
+    <a data-v="rep" tabindex="0"><b>▥</b>Reports &amp; audit</a>
+    <h6>CARE &amp; ADMINISTRATION</h6>
+    <a data-v="pat" tabindex="0"><b>♙</b>Patients</a>
+    <a data-v="ins" tabindex="0"><b>▧</b>Insurance &amp; claims</a>
+    <a data-v="noti" tabindex="0"><b>♪</b>Notifications</a>
+    <a data-v="team" id="navTeam" tabindex="0"><b>♧</b>Team &amp; access</a>
+    <a data-v="plan" tabindex="0"><b>$</b>Plans &amp; billing</a>
+    <a data-v="set" tabindex="0"><b>⚙</b>Settings</a>
+    <a id="logout" tabindex="0"><b>↩</b>Sign out</a>
+  </nav>
+  <header>
+    <button class="btn" id="acct">Account</button>
+    <div class="avatar" id="av">TA</div>
+    <button class="btn" id="burger" aria-label="Open menu">☰</button>
+  </header>
+  <main id="view"></main>
+</div>
+<script src="app.js"></script>
+</body>
+      </html>
