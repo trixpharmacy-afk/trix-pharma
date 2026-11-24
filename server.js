@@ -287,7 +287,7 @@ const R={
   if(!limit('act:'+a.u.id,8,15*60e3))return bad(res,429,'Too many attempts. Wait 15 minutes and try again.');
   const o=a.o,c=String(b.code||'').trim().toUpperCase();
   if(!o.act||o.act.exp<Date.now()||!eq(sha(c),o.act.h))return bad(res,400,'That activation code is not valid.');
-  o.paidUntil=Math.max(Date.now(),o.paidUntil)+30*864e5;delete o.act;save(),send(res,200,{ok:1});
+  o.paidUntil=Math.max(Date.now(),o.paidUntil)+30*864e5;delete o.act;save();send(res,200,{ok:1});
  },
  /* team: owner only */
  'GET /api/team':async(req,res)=>{
